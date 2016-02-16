@@ -3,9 +3,13 @@ from math import sqrt, ceil
 # from heapq import heappush, heappop
 
 FILE_IN = 'test.in'
-FILE_OUT = 'test.out'
+FILE_OUT = 'bidon.out'
 FILE_IN = 'busy_day.in'
-FILE_OUT = 'bd.out'
+FILE_OUT = '1.out'
+FILE_IN = 'mother_of_all_warehouses.in'
+FILE_OUT = '2.out'
+FILE_IN = 'redundancy.in'
+FILE_OUT = '3.out'
 SCORE = 0
 
 lines = open(FILE_IN).read().splitlines()
@@ -44,7 +48,7 @@ def load(drone_id):
 
 with open(FILE_OUT) as f:
     next(f)
-    for line in f:
+    for i, line in enumerate(f, start=2):
         if 'W' in line or 'U' in line:
             pass
         else:
@@ -52,11 +56,15 @@ with open(FILE_OUT) as f:
         if command == 'L':
             time_d[drone_id] += ceil(dist(coords_d[drone_id], coords_w[place_id]))
             # TODO verify there is sufficient stock in warehouse
+            if stocks[place_id][product_type] < quantity:
+                print('Error line %d: Warehouse %d trying to dispatch goods that aren\'t stocked! (was: %s)' % (i, place_id, line))
+                break
+            stocks[place_id][product_type] -= quantity
             coords_d[drone_id] = coords_w[place_id]
             load_d[drone_id][product_type] += quantity
             # TODO verify max_payload
             time_d[drone_id] += 1
-            # print('Drone %d loads from warehouse %d at turn %d' % (drone_id, place_id, time_d[drone_id]))
+            print('Drone %d loads from warehouse %d at turn %d' % (drone_id, place_id, time_d[drone_id]))
         else:
             time_d[drone_id] += ceil(dist(coords_d[drone_id], coords_o[place_id]))
             coords_d[drone_id] = coords_o[place_id]
@@ -67,6 +75,16 @@ with open(FILE_OUT) as f:
             current_time = time_d[drone_id]
             delivery_times.setdefault(place_id, []).append(current_time)
             if all(quantity == 0 for quantity in request[place_id].values()):
-                # print('Order %d is satisfied by drone %d at turn %d' % (place_id, drone_id, time_d[drone_id]))
+                print('Order %d is satisfied by drone %d at turn %d' % (place_id, drone_id, time_d[drone_id]))
                 SCORE += ceil((T - max(delivery_times[place_id])) * 100 / T)
+            else:
+                pass
+                # print(request[place_id])
     print('SCORE:', SCORE)
+
+nb_not_satisfied = 0
+for o in range(nb_orders):
+    if any(quantity > 0 for quantity in request[o].values()):
+        nb_not_satisfied +=1
+if nb_not_satisfied:
+    print('%d orders not satisfied though.' % nb_not_satisfied)
