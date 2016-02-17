@@ -56,7 +56,7 @@ for i in range(o):
                 distmin=min(distmin,dist(ware_x,ware_y,a,b))
         disti=max(disti,distmin)
     # weight*=dist(a,b,bary_x,bary_y)
-    weight=disti
+    weight*=disti+dist(a,b,bary_x,bary_y)
     z=randint(0,10)
     z=0
     heappush(pq_order,(weight+z,i))
@@ -72,12 +72,26 @@ nnb=0
 #t=200
 
 xx=0
+bb=False
 
 while(True):
-    tt,nd,a,b=heappop(pq_drone)
+    drone1=heappop(pq_drone)
+    drone2=heappop(pq_drone)
+    drone3=heappop(pq_drone)
+    # drone4=heappop(pq_drone)
+    # drone5=heappop(pq_drone)
+    # drone6=heappop(pq_drone)
+    # drone7=heappop(pq_drone)
+    # drone8=heappop(pq_drone)
+    drones=[drone1,drone2,drone3]#,drone4,drone5,drone6,drone7,drone8]
+    ttmax=drones[len(drones)-1][0]
     # print("Drone :",nd,file=sys.stderr)
-    print("Time :",tt,file=sys.stderr)
-    if tt>=t:break
+    print("Time :",drones[0][0],file=sys.stderr)
+    for tt,nd,a,b in drones:
+        if tt>t:
+            bb=True
+    if bb:
+        break
     
     for produit in range(p):
         if order_l[produit]>available[produit]:
@@ -105,40 +119,45 @@ while(True):
     ware_best=-1
     maxi=-1
     dist_best=-1
+    drone_best=-1
     load_best=[-1 for i in range(p)]
     for ware in range(w):
-        #print("   Warehouse :",ware,end=" ",file=sys.stderr)
-        weight=0
-        load_temp=[0 for i in range(p)]
-        ware_x,ware_y,_=wl[ware]
-        ware_list=[wl[ware][2][produit] for produit in range(p)]
-        for produit in order_list:
-            #if ware_list[produit]>0:print("yolo",end=" ",file=sys.stderr)
-            if ware_list[produit]>0 and weight+pl[produit]<=pds:
-                weight+=pl[produit]
-                ware_list[produit]-=1
-                load_temp[produit]+=1
-        dist_temp=dist(a,b,ware_x,ware_y)+dist(ware_x,ware_y,order_x,order_y)
-        score=(weight)/dist_temp
-        # score=10000-dist_temp
-        # score=weight
-        if weight==0:
-            score=-2
-        #print(weight,dist_temp,score,file=sys.stderr)
-        if score>maxi:
-            maxi=score
-            ware_best=ware
-            dist_best=dist_temp
-            for i in range(p):
-                load_best[i]=load_temp[i]
+        for tt,nd,a,b in [drone1,drone2]:
+            #print("   Warehouse :",ware,end=" ",file=sys.stderr)
+            weight=0
+            load_temp=[0 for i in range(p)]
+            ware_x,ware_y,_=wl[ware]
+            ware_list=[wl[ware][2][produit] for produit in range(p)]
+            for produit in order_list:
+                #if ware_list[produit]>0:print("yolo",end=" ",file=sys.stderr)
+                if ware_list[produit]>0 and weight+pl[produit]<=pds:
+                    weight+=pl[produit]
+                    ware_list[produit]-=1
+                    load_temp[produit]+=1
+            dist_temp=max(1,dist(a,b,ware_x,ware_y)+dist(ware_x,ware_y,order_x,order_y)+tt-ttmax)
+            score=weight/dist_temp
+            # score=10000-dist_temp
+            # score=weight
+            if weight==0:
+                score=-2
+            #print(weight,dist_temp,score,file=sys.stderr)
+            if score>maxi:
+                maxi=score
+                ware_best=ware
+                dist_best=dist_temp
+                drone_best=nd
+                for i in range(p):
+                    load_best[i]=load_temp[i]
     
-    if maxi==0.0:
+    if maxi<=0.0:
         current=-1
         nnb+=1
         print("bye bye",order_list,file=sys.stderr)
-        heappush(pq_drone,(tt,nd,a,b))
+        for tt,nd,a,b in drones:
+            heappush(pq_drone,(tt,nd,a,b))
     elif dist_best>1000000:
-        heappush(pq_drone,(tt+10,nd,a,b))
+        for tt,nd,a,b in drones:
+            heappush(pq_drone,(tt+10,nd,a,b))
         nb_com+=1
         com+=str(nd)+" W 10\n"
     else:
@@ -151,15 +170,19 @@ while(True):
                 nb_com+=2
                 # print(str(nd)+" L "+str(ware_best)+" "+str(produit)+" "+str(load_best[produit]),file=sys.stderr)
                 # print(str(nd)+" D "+str(current)+" "+str(produit)+" "+str(load_best[produit]),file=sys.stderr)
-                com+=str(nd)+" L "+str(ware_best)+" "+str(produit)+" "+str(load_best[produit])+"\n"
-                com2+=str(nd)+" D "+str(current)+" "+str(produit)+" "+str(load_best[produit])+"\n"
+                com+=str(drone_best)+" L "+str(ware_best)+" "+str(produit)+" "+str(load_best[produit])+"\n"
+                com2+=str(drone_best)+" D "+str(current)+" "+str(produit)+" "+str(load_best[produit])+"\n"
                 wait+=2
                 ware_list[produit]-=load_best[produit]
                 available[produit]-=load_best[produit]
                 order_l[produit]-=load_best[produit]
                     
         com+=com2
-        heappush(pq_drone,(tt+wait,nd,order_x,order_y))
+        for tt,nd,a,b in drones:
+            if nd==drone_best:
+                heappush(pq_drone,(tt+wait,nd,order_x,order_y))
+            else:
+                heappush(pq_drone,(tt,nd,a,b))
                     
         if sum(order_l)==0:
             current=-1
